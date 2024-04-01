@@ -2,9 +2,12 @@ package com.reireilla.data.processor;
 
 import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
+import com.reireilla.data.exceptions.DataBeanValidationException;
 import com.reireilla.data.exceptions.ProcessedDataFormatException;
 import com.reireilla.data.model.DataBean;
 import com.reireilla.data.model.UpdateBean;
+import com.reireilla.data.model.utils.DataParser;
+import com.reireilla.data.validations.DataValidator;
 import com.reireilla.database.DatabaseProcessor;
 import lombok.Getter;
 import org.apache.commons.collections4.CollectionUtils;
@@ -16,10 +19,7 @@ import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Connection;
-import java.sql.Date;
-import java.time.LocalDate;
 import java.util.List;
-import java.util.regex.Pattern;
 
 public class DataProcessor {
     private static final Logger logger = LogManager.getLogger(DataProcessor.class);
@@ -27,18 +27,15 @@ public class DataProcessor {
     @Getter
     private final List<Path> filePaths;
 
-    private final Pattern sqlDatePattern = Pattern.compile("^\\d{4}-\\d{1,2}-\\d{1,2}$");
-    private final Pattern americanDatePattern = Pattern.compile("^\\d{1,2}/\\d{1,2}/\\d{4}$");
-
     public DataProcessor(List<Path> filePaths) {
         this.filePaths = filePaths;
     }
 
-    public int getFilePathsAmount(){
+    public int getFilePathsAmount() {
         return CollectionUtils.size(filePaths);
     }
 
-    public boolean areFilePathsFound(){
+    public boolean areFilePathsFound() {
         return CollectionUtils.isNotEmpty(filePaths);
     }
 
@@ -52,9 +49,12 @@ public class DataProcessor {
 
                 for (DataBean dataBean : dataBeans) {
                     try {
+                        DataValidator.validateDataBean(dataBean);
                         processDataLine(dataBean, connection);
                     } catch (ProcessedDataFormatException e) {
                         logger.error("Data format violation for data bean {}", dataBean);
+                    } catch (DataBeanValidationException e) {
+                        logger.error("Data validation failed for data bean {}", dataBean);
                     }
                 }
 
@@ -85,50 +85,13 @@ public class DataProcessor {
 
     private void processDataLine(DataBean dataBean, Connection connection) throws ProcessedDataFormatException {
         dataBean.setStartDate(
-                parseDate(dataBean.getStartDateTime().substring(0, dataBean.getStartDateTime().indexOf(" "))));
+                DataParser.parseDate(
+                        dataBean.getStartDateTime().substring(0, dataBean.getStartDateTime().indexOf(" "))));
         dataBean.setEndDate(
-                parseDate(dataBean.getStopDateTime().substring(0, dataBean.getStopDateTime().indexOf(" "))));
+                DataParser.parseDate(dataBean.getStopDateTime().substring(0, dataBean.getStopDateTime().indexOf(" "))));
 
-        dataBean.setBirthYear(parseBirthYear(dataBean.getStringBirthYear()));
+        dataBean.setBirthYear(DataParser.parseBirthYear(dataBean.getStringBirthYear()));
 
         DatabaseProcessor.insertDataBean(dataBean, connection);
-    }
-
-    private Date parseDate(String dateTime) throws ProcessedDataFormatException {
-        int day;
-        int month;
-        int year;
-
-        if (sqlDatePattern.matcher(dateTime).find()) {
-            int fistDividerIndex = dateTime.indexOf("-");
-            int lastDividerIndex = dateTime.lastIndexOf("-");
-
-            day = Integer.parseInt(dateTime.substring(lastDividerIndex + 1));
-            month = Integer.parseInt(dateTime.substring(fistDividerIndex + 1, lastDividerIndex));
-            year = Integer.parseInt(dateTime.substring(0, fistDividerIndex));
-        } else if (americanDatePattern.matcher(dateTime).find()) {
-            int fistDividerIndex = dateTime.indexOf("/");
-            int lastDividerIndex = dateTime.lastIndexOf("/");
-
-            day = Integer.parseInt(dateTime.substring(lastDividerIndex + 1));
-            month = Integer.parseInt(dateTime.substring(0, fistDividerIndex));
-            year = Integer.parseInt(dateTime.substring(fistDividerIndex + 1, lastDividerIndex));
-        } else {
-            throw new ProcessedDataFormatException();
-        }
-
-        return Date.valueOf(LocalDate.of(day, month, year));
-    }
-
-    private int parseBirthYear(String stringBirthYear) {
-        int result;
-
-        try {
-            result = Integer.parseInt(stringBirthYear);
-        } catch (NumberFormatException e) {
-            result = -1;
-        }
-
-        return result;
     }
 }
