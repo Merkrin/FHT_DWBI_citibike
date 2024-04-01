@@ -7,6 +7,7 @@ import com.reireilla.data.model.DataBean;
 import com.reireilla.data.model.UpdateBean;
 import com.reireilla.database.DatabaseProcessor;
 import lombok.Getter;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -31,6 +32,14 @@ public class DataProcessor {
 
     public DataProcessor(List<Path> filePaths) {
         this.filePaths = filePaths;
+    }
+
+    public int getFilePathsAmount(){
+        return CollectionUtils.size(filePaths);
+    }
+
+    public boolean areFilePathsFound(){
+        return CollectionUtils.isNotEmpty(filePaths);
     }
 
     public void loadAndProcessData(Connection connection) {

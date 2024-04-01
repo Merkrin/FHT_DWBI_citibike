@@ -23,15 +23,19 @@ public class Main {
         try (Connection connection = DatabaseEntity.connect()) {
             DataProcessor dataProcessor = new DataProcessor(
                     PathsLoader.loadAllPathsFromFolderWithExtension("csv", "data"));
-            logger.debug("{} files with data were found.", dataProcessor.getFilePaths().size());
+            logger.debug("{} files with data were found.", dataProcessor.getFilePathsAmount());
 
-            dataProcessor.loadAndProcessData(connection);
+            if (dataProcessor.areFilePathsFound()) {
+                dataProcessor.loadAndProcessData(connection);
+            }
 
             dataProcessor = new DataProcessor(
                     PathsLoader.loadAllPathsFromFolderWithExtension("csv", "updates"));
-            logger.debug("{} files with updates were found.", dataProcessor.getFilePaths().size());
+            logger.debug("{} files with updates were found.", dataProcessor.getFilePathsAmount());
 
-            dataProcessor.loadAndProcessUpdates(connection);
+            if (dataProcessor.areFilePathsFound()) {
+                dataProcessor.loadAndProcessUpdates(connection);
+            }
         } catch (SQLException | IOException | URISyntaxException e) {
             logger.error(e);
         }
