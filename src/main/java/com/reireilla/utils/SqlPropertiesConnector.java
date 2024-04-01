@@ -7,7 +7,7 @@ import java.io.InputStream;
 import java.util.Properties;
 
 public class SqlPropertiesConnector {
-    private static final String SQL_PROPERTIES_NAME = "sql.properties";
+    private static final String SQL_PROPERTIES_NAME = "sql/sql.properties";
 
     private static final Properties PROPERTIES = new Properties();
 

@@ -4,6 +4,7 @@ import com.reireilla.data.exceptions.DataBeanValidationException;
 import com.reireilla.data.exceptions.ProcessedDataFormatException;
 import com.reireilla.data.model.DataBean;
 import com.reireilla.data.model.utils.DataParser;
+import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Date;
 import java.time.LocalDate;
@@ -39,10 +40,14 @@ public class DataValidator {
     }
 
     private static boolean areTimesValid(String startTime, String endTime) throws ProcessedDataFormatException {
-        Date startDateTime = DataParser.parseDate(startTime);
-        Date endDateTime = DataParser.parseDate(endTime);
+        if (StringUtils.isNoneBlank(startTime, endTime)) {
+            Date startDateTime = DataParser.parseDate(startTime.substring(0, startTime.indexOf(' ')));
+            Date endDateTime = DataParser.parseDate(endTime.substring(0, endTime.indexOf(' ')));
 
-        return isDateValid(startDateTime) && isDateValid(endDateTime) && !endDateTime.before(startDateTime);
+            return isDateValid(startDateTime) && isDateValid(endDateTime) && !endDateTime.before(startDateTime);
+        }
+
+        return false;
     }
 
     private static boolean isDateValid(Date date) {

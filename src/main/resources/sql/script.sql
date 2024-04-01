@@ -103,7 +103,14 @@ BEGIN
 				 users u
 			WHERE duby.birth_year = u.birth_year
 				AND u.user_id = trip.bike_user;
-		
+
+		INSERT
+		    INTO dim_station
+		    SELECT *
+		    FROM
+		        stations
+		ON CONFLICT DO NOTHING;
+
 		INSERT
 			INTO fact_trip(
 				start_date_id,

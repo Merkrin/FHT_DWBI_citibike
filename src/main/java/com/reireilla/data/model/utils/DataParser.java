@@ -37,7 +37,7 @@ public class DataParser {
         }
 
         try {
-            return Date.valueOf(LocalDate.of(day, month, year));
+            return Date.valueOf(LocalDate.of(year, month, day));
         } catch (DateTimeException e) {
             throw new ProcessedDataFormatException();
         }
