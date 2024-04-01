@@ -4,6 +4,7 @@ import com.opencsv.bean.CsvToBean;
 import com.opencsv.bean.CsvToBeanBuilder;
 import com.reireilla.data.exceptions.ProcessedDataFormatException;
 import com.reireilla.data.model.DataBean;
+import com.reireilla.data.model.UpdateBean;
 import com.reireilla.database.DatabaseProcessor;
 import lombok.Getter;
 import org.apache.logging.log4j.LogManager;
@@ -42,7 +43,7 @@ public class DataProcessor {
 
                 for (DataBean dataBean : dataBeans) {
                     try {
-                        processLine(dataBean, connection);
+                        processDataLine(dataBean, connection);
                     } catch (ProcessedDataFormatException e) {
                         logger.error("Data format violation for data bean {}", dataBean);
                     }
@@ -55,7 +56,25 @@ public class DataProcessor {
         }
     }
 
-    private void processLine(DataBean dataBean, Connection connection) throws ProcessedDataFormatException {
+    public void loadAndProcessUpdates(Connection connection) {
+        for (Path filePath : filePaths) {
+            try (Reader reader = Files.newBufferedReader(filePath)) {
+                CsvToBean<UpdateBean> csvBean = new CsvToBeanBuilder<UpdateBean>(reader).withType(UpdateBean.class)
+                        .build();
+
+                List<UpdateBean> updateBeans = csvBean.parse();
+                logger.debug("{} data beans were found in file {}.", updateBeans.size(), filePath);
+
+                for (UpdateBean updateBean : updateBeans) {
+                    DatabaseProcessor.updateStationByUpdateBean(updateBean, connection);
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private void processDataLine(DataBean dataBean, Connection connection) throws ProcessedDataFormatException {
         dataBean.setStartDate(
                 parseDate(dataBean.getStartDateTime().substring(0, dataBean.getStartDateTime().indexOf(" "))));
         dataBean.setEndDate(

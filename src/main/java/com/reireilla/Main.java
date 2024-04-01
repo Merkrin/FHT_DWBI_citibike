@@ -4,6 +4,7 @@ import com.reireilla.data.processor.DataProcessor;
 import com.reireilla.data.reader.PathsLoader;
 import com.reireilla.database.DatabaseConfig;
 import com.reireilla.database.DatabaseEntity;
+import com.reireilla.utils.SqlPropertiesConnector;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -17,14 +18,20 @@ public class Main {
 
     public static void main(String[] args) {
         DatabaseConfig.loadConfig();
+        SqlPropertiesConnector.loadConfig();
 
         try (Connection connection = DatabaseEntity.connect()) {
             DataProcessor dataProcessor = new DataProcessor(
                     PathsLoader.loadAllPathsFromFolderWithExtension("csv", "data"));
-
             logger.debug("{} files with data were found.", dataProcessor.getFilePaths().size());
 
             dataProcessor.loadAndProcessData(connection);
+
+            dataProcessor = new DataProcessor(
+                    PathsLoader.loadAllPathsFromFolderWithExtension("csv", "updates"));
+            logger.debug("{} files with updates were found.", dataProcessor.getFilePaths().size());
+
+            dataProcessor.loadAndProcessUpdates(connection);
         } catch (SQLException | IOException | URISyntaxException e) {
             logger.error(e);
         }
